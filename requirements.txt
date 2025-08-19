@@ -5,7 +5,5 @@ python-dotenv
 streamlit-autorefresh
 wordcloud
 matplotlib
-transformers==4.39.0
-torch==2.2.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
-sentencepiece
-safetensors
+transformers
+torch
