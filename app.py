@@ -11,8 +11,7 @@ import base64
 from io import BytesIO
 
 # ================= LOAD API KEY =================
-load_dotenv()
-API_KEY = os.getenv("YOUTUBE_API_KEY")
+API_KEY = st.secrets["YOUTUBE_API_KEY"]
 
 if not API_KEY:
     st.error("API Key tidak ditemukan. Pastikan file .env berisi YOUTUBE_API_KEY=xxxx")
