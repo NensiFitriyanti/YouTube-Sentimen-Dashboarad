@@ -1,3 +1,4 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
 streamlit
 pandas
 google-api-python-client
@@ -6,6 +7,6 @@ streamlit-autorefresh
 wordcloud
 matplotlib
 transformers==4.39.0
-torch==2.0.1
+torch==2.0.1+cpu
 sentencepiece
 safetensors
