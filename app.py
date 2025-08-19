@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from googleapiclient.discovery import build
 from streamlit_autorefresh import st_autorefresh
 import os
@@ -8,14 +9,18 @@ from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
-from transformers import pipeline
+
 # ================= LOAD API KEY =================
 load_dotenv()
 API_KEY = os.getenv("YOUTUBE_API_KEY")
+
 if not API_KEY:
     st.error("API Key tidak ditemukan. Pastikan file .env berisi YOUTUBE_API_KEY=xxxx")
     st.stop()
+
 youtube = build('youtube', 'v3', developerKey=API_KEY)
+analyzer = SentimentIntensityAnalyzer()
+
 # ================= FUNCTION GET COMMENT =================
 def get_comments(video_id, max_results=200):
     comments = []
@@ -37,25 +42,14 @@ def get_comments(video_id, max_results=200):
         st.error(f"Gagal ambil komentar: {e}")
     return comments[:max_results]
 
-# Load IndoBERT sentiment model (cache otomatis)
-sentiment_model = pipeline(
-    "sentiment-analysis",
-    model="w11wo/indonesian-roberta-base-sentiment-classifier"
-)
-
 def analyze_sentiment(text):
-    try:
-        result = sentiment_model(text[:512])[0]  # max 512 token
-        label = result['label']
-        if label.lower() == "positive":
-            return "Positif"
-        elif label.lower() == "negative":
-            return "Negatif"
-        else:
-            return "Netral"
-    except:
-        return "Netral"
-
+    score = analyzer.polarity_scores(text)
+    if score['compound'] >= 0.05:
+        return 'Positif'
+    elif score['compound'] <= -0.05:
+        return 'Negatif'
+    else:
+        return 'Netral'
 
 @st.cache_data(ttl=300)  # cache 5 menit
 def fetch_and_analyze(video_id):
