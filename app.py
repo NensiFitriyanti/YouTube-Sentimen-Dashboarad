@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
+import base64
 
 # ================= LOAD API KEY =================
 load_dotenv()
@@ -51,54 +52,86 @@ st.set_page_config(page_title="YouTube Sentiment Real-Time", layout="wide")
 st.title("📺 Dashboard Realtime Analisis Sentimen Komentar YouTube")
 st_autorefresh(interval=30000, key="refresh")  # refresh 30 detik
 
-video_id = st.text_input("Masukkan Video ID YouTube:", value="dQw4w9WgXcQ")
+video_input = st.text_input("Masukkan Video ID atau URL YouTube (pisahkan dengan koma):", value="dQw4w9WgXcQ")
 
-if video_id:
-    comments = get_comments(video_id)
-    if comments:
-        data = []
-        for c in comments:
-            label = analyze_sentiment(c)
-            data.append({"Komentar": c, "Sentimen": label})
+if video_input:
+    video_ids = []
+    for v in video_input.split(","):
+        v = v.strip()
+        if "youtube.com" in v or "youtu.be" in v:
+            # Ambil ID dari URL
+            if "v=" in v:
+                video_ids.append(v.split("v=")[1].split("&")[0])
+            elif "youtu.be/" in v:
+                video_ids.append(v.split("youtu.be/")[1].split("?")[0])
+        else:
+            video_ids.append(v)
 
-        df = pd.DataFrame(data)
+    all_data = []
+    summary = {}
+
+    for vid in video_ids:
+        comments = get_comments(vid)
+        if comments:
+            data = []
+            for c in comments:
+                label = analyze_sentiment(c)
+                data.append({"VideoID": vid, "Komentar": c, "Sentimen": label})
+
+            df_video = pd.DataFrame(data)
+            all_data.append(df_video)
+
+            summary[vid] = len(comments)
+
+    if all_data:
+        df = pd.concat(all_data, ignore_index=True)
 
         st.subheader("📋 Komentar & Sentimen")
         st.dataframe(df)
 
-        st.subheader("📊 Grafik Sentimen")
-        st.bar_chart(df['Sentimen'].value_counts())
-
-        # ================= WORD CLOUD =================
+                # ================= WORD CLOUD =================
         st.subheader("☁️ Word Cloud Komentar")
-        option = st.radio("Pilih jenis sentimen untuk Word Cloud:",
-                          ["Semua", "Positif", "Negatif", "Netral"], horizontal=True)
-
-        if option == "Semua":
-            filtered_text = " ".join(df["Komentar"].tolist())
-        else:
-            filtered_text = " ".join(df[df["Sentimen"] == option]["Komentar"].tolist())
-
-        if filtered_text.strip():
-            wordcloud = WordCloud(width=800, height=400, background_color="white").generate(filtered_text)
+        all_text = " ".join(df["Komentar"].tolist())
+        if all_text.strip():
+            wordcloud = WordCloud(width=800, height=400, background_color="white").generate(all_text)
             fig, ax = plt.subplots(figsize=(10, 5))
             ax.imshow(wordcloud, interpolation="bilinear")
             ax.axis("off")
             st.pyplot(fig)
         else:
-            st.info("Tidak ada kata yang bisa dibuat Word Cloud untuk filter ini.")
+            st.info("Tidak ada kata yang bisa dibuat Word Cloud.")
 
-        # ================= DOWNLOAD =================
-        st.subheader("⬇️ Download Hasil Analisis")
-        csv = df.to_csv(index=False).encode("utf-8")
+        # ========== Tambahkan tombol download ==========
+        # Download CSV
+        csv = df.to_csv(index=False).encode('utf-8')
         st.download_button(
-            label="Download CSV",
+            label="⬇️ Download Hasil (CSV)",
             data=csv,
-            file_name="sentiment_result.csv",
-            mime="text/csv"
+            file_name="sentimen_youtube.csv",
+            mime="text/csv",
         )
 
+        # Download Excel
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(writer, index=False, sheet_name="Sentimen")
+        st.download_button(
+            label="⬇️ Download Hasil (Excel)",
+            data=output.getvalue(),
+            file_name="sentimen_youtube.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+        st.subheader("📊 Grafik Sentimen Total")
+        st.bar_chart(df['Sentimen'].value_counts())
+
+        st.subheader("📌 Insight")
+        total_comments = len(df)
+        st.write(f"Total komentar dianalisis: **{total_comments}**")
+        st.write(f"Jumlah video dianalisis: **{len(video_ids)}**")
+        for vid, count in summary.items():
+            st.write(f"- Video `{vid}`: {count} komentar")
     else:
         st.warning("Komentar tidak ditemukan atau ID salah.")
 else:
-    st.info("Masukkan Video ID.")
+    st.info("Masukkan Video ID atau URL.")
