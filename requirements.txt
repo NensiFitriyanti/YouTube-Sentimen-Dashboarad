@@ -1,7 +1,8 @@
 streamlit
 pandas
-matplotlib
-seaborn
-nltk
 google-api-python-client
+python-dotenv
+streamlit-autorefresh
 wordcloud
+matplotlib
+vaderSentiment
