@@ -3,19 +3,16 @@ import pandas as pd
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from googleapiclient.discovery import build
 from streamlit_autorefresh import st_autorefresh
-import os
-from dotenv import load_dotenv
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
-import base64
 from io import BytesIO
 
 # ================= LOAD API KEY =================
-API_KEY = st.secrets["YOUTUBE_API_KEY"]
-
-if not API_KEY:
-    st.error("API Key tidak ditemukan. Pastikan file .env berisi YOUTUBE_API_KEY=xxxx")
+if "YOUTUBE_API_KEY" not in st.secrets:
+    st.error("⚠️ API Key belum diatur di Streamlit Cloud → Secrets")
     st.stop()
+
+API_KEY = st.secrets["YOUTUBE_API_KEY"]
 
 youtube = build('youtube', 'v3', developerKey=API_KEY)
 analyzer = SentimentIntensityAnalyzer()
